@@ -1,181 +1,131 @@
-// ========== GLOBALS ==========
+// ==========================================================
+// GLOBALS
+// ==========================================================
 let ws = null;
-let isRunning = false;
 let audioContext = null;
-let processorNode = null;
 let micStream = null;
+let workletNode = null;
+let isRunning = false;
 
-// UI elements
-const btnStart = document.getElementById('btnStart');
-const btnFlush = document.getElementById('btnFlush');
-const btnStop = document.getElementById('btnStop');
-const statusEl = document.getElementById('status');
-const rawEl = document.getElementById('raw');
-const transEl = document.getElementById('trans');
-const chunkMsInput = document.getElementById('chunkMs');
-const toastEl = document.getElementById('toast');
-const shortcutsPanel = document.getElementById('shortcuts');
+// UI Elements
+const startBtn = document.getElementById("startBtn");
+const stopBtn = document.getElementById("stopBtn");
+const flushBtn = document.getElementById("flushBtn");
 
-// ========== UI HELPERS ==========
-function showToast(msg, type = 'default', ttl = 1500) {
-  toastEl.className = 'toast';
-  if (type === 'error') toastEl.classList.add('error');
-  toastEl.textContent = msg;
-  toastEl.classList.remove('hidden');
-  setTimeout(() => {
-    toastEl.classList.add('hidden');
-  }, ttl);
+const rawBox = document.getElementById("rawBox");
+const cleanBox = document.getElementById("cleanBox");
+const fullTranscript = document.getElementById("fullTranscript");
+const partialBox = document.getElementById("partialBox");
+const currentSentence = document.getElementById("currentSentence");
+
+// ==========================================================
+// HELPER
+// ==========================================================
+function showToast(msg) {
+    console.log("[INFO]", msg);
 }
 
-function setStatus(text) {
-  statusEl.textContent = 'status: ' + text;
+// ==========================================================
+// START MIC (AudioWorklet)
+// ==========================================================
+async function startMic() {
+    micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+    audioContext = new AudioContext({ sampleRate: 16000 });
+
+    await audioContext.audioWorklet.addModule("/static/worklet-processor.js");
+
+    workletNode = new AudioWorkletNode(audioContext, "vosk-processor");
+
+    workletNode.port.onmessage = (event) => {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(event.data);
+        }
+    };
+
+    const source = audioContext.createMediaStreamSource(micStream);
+    source.connect(workletNode);
 }
 
-function appendTranscript(line) {
-  const timestamp = new Date().toLocaleTimeString();
-  const newLine = `[${timestamp}] ${line}\n`;
-  transEl.textContent = newLine + transEl.textContent;
+// ==========================================================
+// STOP MIC
+// ==========================================================
+function stopMic() {
+    if (micStream) micStream.getTracks().forEach(t => t.stop());
+    if (audioContext) audioContext.close();
 }
 
-// ========== MIC + AUDIO PROCESSING ==========
-async function startMicStream() {
-  micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+// ==========================================================
+// OPEN WEBSOCKET
+// ==========================================================
+function openWS() {
+    ws = new WebSocket("ws://127.0.0.1:8000/ws/asr");
+    ws.binaryType = "arraybuffer";
 
-  audioContext = new AudioContext({ sampleRate: 16000 });
-  const source = audioContext.createMediaStreamSource(micStream);
+    ws.onmessage = (event) => {
+        let data = {};
+        try { data = JSON.parse(event.data); } catch { return; }
 
-  processorNode = audioContext.createScriptProcessor(4096, 1, 1);
+        // RAW (with filler words)
+        if (data.type === "raw") {
+            rawBox.value = data.text;
+        }
 
-  processorNode.onaudioprocess = (e) => {
-    const floatData = e.inputBuffer.getChannelData(0);
-    const pcm16 = floatTo16BitPCM(floatData);
+        // Partial live text
+        if (data.type === "partial") {
+            partialBox.value = data.text;
+        }
 
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(pcm16);
-    }
-  };
+        // Final cleaned sentence
+        if (data.type === "final") {
+            currentSentence.value = data.text;
+            cleanBox.value = data.text;
 
-  source.connect(processorNode);
-  processorNode.connect(audioContext.destination);
+            if (data.full_transcript)
+                fullTranscript.value = data.full_transcript;
+        }
+    };
 }
 
-function floatTo16BitPCM(float32Array) {
-  const pcm16 = new Int16Array(float32Array.length);
-  for (let i = 0; i < float32Array.length; i++) {
-    let s = Math.max(-1, Math.min(1, float32Array[i]));
-    pcm16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
-  }
-  return pcm16;
-}
-
-// ========== WEBSOCKET ==========
-function openWebSocket() {
-  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  const host = window.location.host;
-  const url = `${protocol}//${host}/ws/asr`;
-
-  ws = new WebSocket(url);
-
-  ws.binaryType = "arraybuffer";
-
-  ws.onopen = () => {
-    showToast("Connected");
-    setStatus("connected");
-  };
-
-  ws.onmessage = (ev) => {
-    let data = JSON.parse(ev.data);
-
-    if (data.type === "ready") {
-      setStatus("ready");
-    }
-
-    if (data.type === "partial") {
-      rawEl.textContent = data.text;
-    }
-
-    if (data.type === "final") {
-      appendTranscript(data.text);
-    }
-  };
-
-  ws.onclose = () => {
-    setStatus("disconnected");
-    showToast("Disconnected", "error");
-  };
-}
-
-// ========== START / STOP SESSION ==========
+// ==========================================================
+// START SESSION
+// ==========================================================
 async function startSession() {
-  if (isRunning) return;
+    if (isRunning) return;
 
-  isRunning = true;
+    openWS();
+    await startMic();
 
-  btnStart.disabled = true;
-  btnStop.disabled = false;
-  btnFlush.disabled = false;
-
-  openWebSocket();
-  await startMicStream();
-
-  setStatus("listening");
-  showToast("Recording Started 🎤");
+    isRunning = true;
+    startBtn.disabled = true;
+    stopBtn.disabled = false;
 }
 
+// ==========================================================
+// STOP SESSION
+// ==========================================================
 function stopSession() {
-  isRunning = false;
+    isRunning = false;
 
-  btnStart.disabled = false;
-  btnStop.disabled = true;
-  btnFlush.disabled = true;
+    stopMic();
+    if (ws) ws.close();
 
-  if (processorNode) processorNode.disconnect();
-  if (audioContext) audioContext.close();
-  if (micStream) micStream.getTracks().forEach(t => t.stop());
-  if (ws) ws.close();
-
-  processorNode = null;
-  audioContext = null;
-  micStream = null;
-
-  setStatus("stopped");
-  showToast("Recording Stopped");
+    startBtn.disabled = false;
+    stopBtn.disabled = true;
 }
 
-// ========== FLUSH (old feature, still works) ==========
-function flushChunk() {
-  if (ws && ws.readyState === WebSocket.OPEN) {
-    ws.send(JSON.stringify({ cmd: "demo_flush" }));
-    showToast("Demo Flush sent");
-  }
+// ==========================================================
+// FLUSH CLEAN
+// ==========================================================
+function flushClean() {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ cmd: "flush" }));
+    }
 }
 
-// ========== COPY / CLEAR ==========
-async function copyLatest() {
-  const firstLine = transEl.textContent.split('\n')[0];
-  if (firstLine.trim()) {
-    await navigator.clipboard.writeText(firstLine);
-    showToast("Copied latest line");
-  }
-}
-
-async function copyAll() {
-  const txt = transEl.textContent.trim();
-  if (txt) {
-    await navigator.clipboard.writeText(txt);
-    showToast("All text copied");
-  }
-}
-
-function clearTranscripts() {
-  transEl.textContent = "";
-  showToast("Cleared");
-}
-
-// ========== UI EVENTS ==========
-btnStart.addEventListener('click', startSession);
-btnStop.addEventListener('click', stopSession);
-btnFlush.addEventListener('click', flushChunk);
-
-setStatus("idle");
-shortcutsPanel.style.display = "block";
+// ==========================================================
+// BUTTONS
+// ==========================================================
+startBtn.onclick = startSession;
+stopBtn.onclick = stopSession;
+flushBtn.onclick = flushClean;

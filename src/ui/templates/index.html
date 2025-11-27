@@ -1,50 +1,74 @@
-<!doctype html>
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-  <meta charset="utf-8">
-  <title>Speech Dictation — Faster-Whisper (WebSocket)</title>
-  <link rel="stylesheet" href="/static/style.css">
+    <meta charset="UTF-8">
+    <title>Speech Dictation</title>
+    <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-  <main>
-    <h1>Speech Dictation — Faster-Whisper</h1>
 
-    <section id="controls">
-      <button id="btnStart">Start</button>
-      <button id="btnFlush" disabled>Flush</button>
-      <button id="btnStop" disabled>Stop</button>
-      <label>Chunk (ms):
-        <input id="chunkMs" type="number" value="1000" min="200" step="100">
-      </label>
-      <span id="status">status: idle</span>
-    </section>
+<div class="container">
 
-    <section id="panels">
-      <div class="panel">
-        <h3>Partial Transcript</h3>
-        <pre id="raw"></pre>
-      </div>
-      <div class="panel">
-        <h3>Final Output</h3>
-        <pre id="trans"></pre>
-      </div>
-    </section>
+    <h1 class="title">Speech <span class="highlight">Dictation</span></h1>
+    <p class="subtitle">Studio-grade live transcription with instant clean-up.</p>
 
-    <section id="shortcuts">
-      <h4>Keyboard Shortcuts</h4>
-      <ul>
-        <li>Ctrl/Cmd + S — Start/Stop</li>
-        <li>Ctrl/Cmd + F — Flush</li>
-        <li>Ctrl/Cmd + C — Copy Latest</li>
-        <li>Ctrl/Cmd + Shift + C — Copy All</li>
-        <li>Ctrl/Cmd + L — Clear Output</li>
-        <li>? — Toggle Shortcuts Panel</li>
-      </ul>
-    </section>
+    <!-- Buttons -->
+    <div class="controls">
+        <button id="startBtn" class="btn green">START SPEAKING</button>
+        <button id="flushBtn" class="btn purple">FLUSH & CLEAN</button>
+        <button id="stopBtn" class="btn red">STOP</button>
+    </div>
 
-    <div id="toast" class="toast hidden"></div>
-  </main>
+    <!-- LIVE PANELS -->
+    <div class="panels">
+        <div class="panel">
+            <h3>Partial (Live)</h3>
+            <textarea id="partialBox" class="transcript-box" readonly></textarea>
+        </div>
 
-  <script src="/static/script.js"></script>
+        <div class="panel">
+            <h3>Current Cleaned Sentence</h3>
+            <textarea id="currentSentence" class="transcript-box" readonly></textarea>
+        </div>
+    </div>
+
+    <!-- RAW & CLEAN PANELS (MATCH script.js) -->
+    <div class="panels">
+        <div class="panel">
+            <h3>Raw Transcript</h3>
+            <textarea id="rawBox" class="transcript-box" readonly></textarea>
+        </div>
+
+        <div class="panel">
+            <h3>Clean Transcript</h3>
+            <textarea id="cleanBox" class="transcript-box" readonly></textarea>
+        </div>
+    </div>
+
+    <!-- FULL TRANSCRIPT (script.js uses id="fullTranscript") -->
+    <div class="panel">
+        <h3>Full Clean Transcript</h3>
+        <textarea id="fullTranscript" class="transcript-box" readonly></textarea>
+    </div>
+
+ 
+
+    <!-- Shortcuts -->
+    <div class="shortcut-box">
+        <h3>Keyboard Shortcuts</h3>
+        <ul>
+            <li><strong>Ctrl + S:</strong> Start / Stop listening</li>
+            <li><strong>Ctrl + F:</strong> Flush</li>
+            <li><strong>Ctrl + C:</strong> Copy latest</li>
+            <li><strong>Ctrl + Shift + C:</strong> Copy all</li>
+            <li><strong>Ctrl + L:</strong> Clear transcripts</li>
+            <li><strong>?</strong> Show shortcuts</li>
+        </ul>
+    </div>
+
+</div>
+
+<script src="/static/script.js"></script>
+
 </body>
 </html>
