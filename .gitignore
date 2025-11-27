@@ -1,0 +1,6 @@
+.venv/
+__pycache__/
+*.pyc
+
+# Big model file – don't upload to GitHub
+models/asr/model.bin

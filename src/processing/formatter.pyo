@@ -1,0 +1,30 @@
+import re
+
+def format_text(text: str) -> str:
+    """
+    Basic sentence formatting:
+    - trim spaces
+    - capitalize sentence starts
+    - ensure ending punctuation
+    """
+    out = (text or "").strip()
+    if not out:
+        return out
+
+    # split by .?! while keeping them
+    parts = re.split(r'([.?!]\s*)', out)
+    new_parts = []
+    for p in parts:
+        if not p.strip():
+            continue
+        p = p.strip()
+        if len(p) == 1:
+            p = p.upper()
+        else:
+            p = p[0].upper() + p[1:]
+        new_parts.append(p)
+
+    res = " ".join(new_parts)
+    if res and res[-1] not in ".?!":
+        res += "."
+    return res

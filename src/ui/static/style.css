@@ -1,0 +1,80 @@
+:root{
+  --bg:#ffffff;
+  --panel:#fafafa;
+  --muted:#666;
+  --accent:#0078d4;
+  --success:#2d9a3a;
+  --danger:#d9534f;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  margin: 16px;
+  background: var(--bg);
+}
+
+h1 { margin-bottom: 8px; }
+
+#controls {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+button {
+  padding: 8px 14px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  background: white;
+  cursor: pointer;
+}
+
+button.primary {
+  background: var(--accent);
+  color: white;
+}
+
+button:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
+#panels {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.panel {
+  flex: 1;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background: var(--panel);
+  min-height: 250px;
+}
+
+pre {
+  white-space: pre-wrap;
+  font-family: monospace;
+}
+
+#shortcuts {
+  font-size: .9rem;
+  color: var(--muted);
+}
+
+.toast {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: #222;
+  color: #fff;
+}
+
+.toast.hidden {
+  display:none;
+}

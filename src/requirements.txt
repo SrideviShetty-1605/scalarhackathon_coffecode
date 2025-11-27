@@ -1,0 +1,12 @@
+fastapi
+uvicorn[standard]
+websockets
+aiofiles
+numpy
+scipy
+soundfile
+faster-whisper
+python-multipart
+uvloop
+pytest
+
