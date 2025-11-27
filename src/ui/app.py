@@ -1,16 +1,19 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
 from fastapi.staticfiles import StaticFiles
-import os, asyncio, json, multiprocessing
-from concurrent.futures import ProcessPoolExecutor
+from fastapi.templating import Jinja2Templates
+from fastapi.responses import HTMLResponse
+
+
 
 APP = FastAPI()
 
 APP.mount("/static", StaticFiles(directory="src/ui/static"), name="static")
-APP.mount("/templates", StaticFiles(directory="src/ui/templates"), name="templates")
+templates = Jinja2Templates(directory="src/ui/templates")
 
-@APP.get("/")
-async def root():
-    return {"status":"running", "open":"/templates/index.html"}
+@APP.get("/", response_class=HTMLResponse)
+async def index(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
+
 
 @APP.websocket("/ws/asr")
 async def ws_asr(ws:WebSocket):
